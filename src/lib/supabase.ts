@@ -6,17 +6,17 @@ const env = typeof import.meta !== 'undefined' && (import.meta as any).env ? (im
 const supabaseUrl = 
   env.VITE_SUPABASE_URL || 
   (typeof window !== 'undefined' && (window as any).__SUPABASE_URL__) || 
-  'https://aliens-space.supabase.co';
+  'https://tylnloctdtucsoeqyuwq.supabase.co';
 
 const supabaseAnonKey = 
   env.VITE_SUPABASE_ANON_KEY || 
   (typeof window !== 'undefined' && (window as any).__SUPABASE_ANON_KEY__) || 
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsaWVucy1zcGFjZSIsInJvbGUiOiJhaW5vbiIsImlhdCI6MTY5MDAwMDAwMCwiZXhwIjoyMDAwMDAwMDAwfQ.placeholder_key';
+  'sb_publishable_D30wqDYj50kWZ91ZpSq6XQ_5cgILk17';
 
 export const isSupabaseConfigured = Boolean(
-  env.VITE_SUPABASE_URL && 
-  env.VITE_SUPABASE_ANON_KEY &&
-  !String(env.VITE_SUPABASE_URL).includes('placeholder')
+  supabaseUrl && 
+  supabaseAnonKey &&
+  !String(supabaseUrl).includes('placeholder')
 );
 
 // Create and export singleton Supabase client
