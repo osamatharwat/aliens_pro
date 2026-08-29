@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { EventRegistration, Profile } from '../types';
 import { auditService } from './auditService';
+import { profileService } from './profileService';
 
 export const attendanceService = {
   /**
@@ -18,7 +19,12 @@ export const attendanceService = {
       }
 
       const { data, error } = await query;
-      if (!error && data && data.length > 0) {
+      if (error) {
+        console.warn('getRegistrations error:', error);
+        return [];
+      }
+
+      if (data && data.length > 0) {
         return data.map(r => ({
           id: String(r.id),
           event_id: String(r.event_id),
@@ -81,19 +87,6 @@ export const attendanceService = {
       throw new Error(error?.message || 'فشل تسجيل تذكرة الفعالية.');
     }
 
-    // Increment current attendees count for event
-    try {
-      await supabase.rpc('increment_event_attendees', { p_event_id: eventId });
-    } catch (e) {
-      // Fallback direct update
-      const { data: ev } = await supabase.from('events').select('current_attendees_count').eq('id', eventId).single();
-      if (ev) {
-        await supabase.from('events').update({
-          current_attendees_count: (ev.current_attendees_count || 0) + 1
-        }).eq('id', eventId);
-      }
-    }
-
     return {
       id: String(data.id),
       event_id: String(data.event_id),
@@ -119,7 +112,7 @@ export const attendanceService = {
       .from('event_registrations')
       .update({
         attendance_status: status,
-        attendance_marked_by: actor.full_name,
+        attendance_marked_by: actor.id,
         attendance_marked_at: new Date().toISOString()
       })
       .eq('id', registrationId)
@@ -149,7 +142,7 @@ export const attendanceService = {
       email: data.email,
       ticket_code: data.ticket_code,
       attendance_status: data.attendance_status,
-      attendance_marked_by: data.attendance_marked_by,
+      attendance_marked_by: actor.full_name || data.attendance_marked_by,
       attendance_marked_at: data.attendance_marked_at,
       created_at: data.created_at
     };
@@ -158,7 +151,7 @@ export const attendanceService = {
   /**
    * Look up registration by ticket code
    */
-  async getTicketByCode(ticketCode: string): Promise<EventRegistration | null> {
+  async getRegistrationByTicket(ticketCode: string): Promise<EventRegistration | null> {
     const cleanCode = ticketCode.trim().toUpperCase();
     const { data, error } = await supabase
       .from('event_registrations')
@@ -181,5 +174,16 @@ export const attendanceService = {
       attendance_marked_at: data.attendance_marked_at,
       created_at: data.created_at
     };
+  },
+
+  /**
+   * Check in attendee using ticket code
+   */
+  async checkInByTicket(ticketCode: string, actor: Profile): Promise<EventRegistration> {
+    const reg = await this.getRegistrationByTicket(ticketCode);
+    if (!reg) {
+      throw new Error('رمز التذكرة غير صالح أو غير مسجل.');
+    }
+    return this.updateAttendance(reg.id, 'attended', actor);
   }
 };

@@ -1,43 +1,9 @@
 import { supabase } from '../lib/supabase';
 import { MemoryItem, Profile } from '../types';
 
-export const DEFAULT_MEMORIES: MemoryItem[] = [
-  {
-    id: 'mem_1',
-    user_id: 'usr_lead',
-    author_name: 'د. كريم عبد العزيز',
-    author_avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-    memory_text: 'فخور جداً بالجهد الاستثنائي الذي بذله فريق التنظيم والميديا في المؤتمر الصيدلي الأخير. الكيان يثبت يوماً بعد يوم ريادته وتأثيره الحقيقي على الطلاب.',
-    image_url: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1000&q=80',
-    likes_count: 48,
-    user_liked: false,
-    created_at: '2026-08-20T12:00:00Z',
-    comments: [
-      {
-        id: 'c_1',
-        user_id: 'usr_2',
-        author_name: 'سارة طارق',
-        comment_text: 'أفضل تجربة تنظيمية عشتها مع عائلة Aliens Space!',
-        created_at: '2026-08-20T14:30:00Z'
-      }
-    ]
-  },
-  {
-    id: 'mem_2',
-    user_id: 'usr_3',
-    author_name: 'عمر خالد',
-    author_avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
-    memory_text: 'المقابلات الشخصية للدفعة الجديدة عكست طاقات وشغف لا محدود. متحمسون جداً للعمل مع الكفاءات الجديدة.',
-    likes_count: 32,
-    user_liked: false,
-    created_at: '2026-08-22T16:00:00Z',
-    comments: []
-  }
-];
-
 export const memoryService = {
   /**
-   * Fetch all team memories
+   * Fetch all team memories from Supabase
    */
   async getMemories(): Promise<MemoryItem[]> {
     try {
@@ -49,7 +15,12 @@ export const memoryService = {
         `)
         .order('created_at', { ascending: false });
 
-      if (!error && data && data.length > 0) {
+      if (error) {
+        console.warn('getMemories database error:', error);
+        return [];
+      }
+
+      if (data && data.length > 0) {
         return data.map(m => ({
           id: String(m.id),
           user_id: m.user_id,
@@ -72,7 +43,7 @@ export const memoryService = {
     } catch (e) {
       console.warn('getMemories exception:', e);
     }
-    return DEFAULT_MEMORIES;
+    return [];
   },
 
   /**
@@ -80,7 +51,7 @@ export const memoryService = {
    */
   async createMemory(text: string, imageUrl?: string, author?: Profile): Promise<MemoryItem> {
     const payload = {
-      user_id: author?.id || 'anonymous',
+      user_id: author?.id || null,
       author_name: author?.full_name || 'عضو الكيان',
       author_avatar: author?.avatar_url || null,
       memory_text: text.trim(),
@@ -115,7 +86,7 @@ export const memoryService = {
   /**
    * Like a memory
    */
-  async likeMemory(memoryId: string, userId?: string): Promise<number> {
+  async likeMemory(memoryId: string): Promise<number> {
     try {
       const { data: mem } = await supabase.from('memories').select('likes_count').eq('id', memoryId).single();
       const currentLikes = mem?.likes_count || 0;
@@ -132,7 +103,7 @@ export const memoryService = {
   async addComment(memoryId: string, commentText: string, author?: Profile): Promise<any> {
     const payload = {
       memory_id: memoryId,
-      user_id: author?.id || 'anonymous',
+      user_id: author?.id || null,
       author_name: author?.full_name || 'عضو الكيان',
       comment_text: commentText.trim(),
       created_at: new Date().toISOString()

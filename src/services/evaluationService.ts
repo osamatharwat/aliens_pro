@@ -37,10 +37,10 @@ export const evaluationService = {
         return {
           id: String(row.id),
           member_id: row.member_id,
-          member_name: row.member_name || mem?.full_name || 'عضو الفريق',
-          member_committee: row.member_committee || mem?.committee_key || 'عام',
+          member_name: mem?.full_name || 'عضو الفريق',
+          member_committee: mem?.committee_key || 'عام',
           evaluator_id: row.evaluator_id,
-          evaluator_name: row.evaluator_name || evalProf?.full_name || 'مسؤول التقييم',
+          evaluator_name: evalProf?.full_name || 'مسؤول التقييم',
           evaluation_month: row.evaluation_month,
           score: Number(row.score),
           criteria_scores: row.criteria_scores ? (typeof row.criteria_scores === 'object' ? row.criteria_scores : JSON.parse(row.criteria_scores)) : undefined,
@@ -94,12 +94,9 @@ export const evaluationService = {
       .eq('evaluation_month', evalData.evaluation_month)
       .maybeSingle();
 
-    const payload = {
+    const dbPayload = {
       member_id: evalData.member_id,
-      member_name: member.full_name,
-      member_committee: member.committee_key,
       evaluator_id: actor.id,
-      evaluator_name: actor.full_name,
       evaluation_month: evalData.evaluation_month,
       score: validScore,
       criteria_scores: evalData.criteria_scores || {
@@ -108,8 +105,7 @@ export const evaluationService = {
         task_quality: 25,
         initiative: 25
       },
-      notes: evalData.notes?.trim() || '',
-      created_at: new Date().toISOString()
+      notes: evalData.notes?.trim() || null
     };
 
     let resultData;
@@ -117,20 +113,20 @@ export const evaluationService = {
       // Update existing evaluation
       const { data, error } = await supabase
         .from('performance_evaluations')
-        .update(payload)
+        .update(dbPayload)
         .eq('id', existing.id)
         .select()
         .single();
-      if (error) throw new Error(error.message || 'فشل تحديث التقييم.');
+      if (error || !data) throw new Error(error?.message || 'فشل تحديث التقييم.');
       resultData = data;
     } else {
       // Insert new evaluation
       const { data, error } = await supabase
         .from('performance_evaluations')
-        .insert([payload])
+        .insert([dbPayload])
         .select()
         .single();
-      if (error) throw new Error(error.message || 'فشل حفظ التقييم الجديد.');
+      if (error || !data) throw new Error(error?.message || 'فشل حفظ التقييم الجديد.');
       resultData = data;
     }
 

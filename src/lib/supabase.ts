@@ -29,7 +29,3 @@ export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKe
     storageKey: 'sb_aliens_space_auth_token'
   }
 });
-
-if (typeof window !== 'undefined') {
-  (window as any).sb = supabase;
-}

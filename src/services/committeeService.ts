@@ -2,167 +2,43 @@ import { supabase } from '../lib/supabase';
 import { Committee, CommitteeKey, Profile } from '../types';
 import { auditService } from './auditService';
 
-export const CANONICAL_COMMITTEES: Committee[] = [
-  {
-    id: 'comm_marketing',
-    key: 'marketing',
-    name: 'Marketing Committee',
-    arabic_name: 'لجنة التسويق (Marketing)',
-    category: 'Operational',
-    description: 'بناء الهوية البصرية، صياغة الاستراتيجيات التسويقية الرقمية، إدارة الحملات الإعلانية، والترويج لكافة مؤتمرات وفعاليات الكيان.',
-    goals: ['تصميم حملات تسويقية مبتكرة', 'زيادة التفاعل المجتمعي بنسبة 50%', 'إدارة استراتيجيات إطلاق المشاريع'],
-    requirements: ['مهارات الكتابة الإعلانية (Copywriting)', 'فهم سلوك المستهلك الرقمي', 'التفكير الاستراتيجي والتحليلي'],
-    head_name: 'أحمد محمود',
-    sub_head_name: 'سارة طارق',
-    active_members_count: 18,
-    icon_name: 'Megaphone'
-  },
-  {
-    id: 'comm_pr',
-    key: 'pr',
-    name: 'Public Relations',
-    arabic_name: 'لجنة العلاقات العامة (PR)',
-    category: 'Academics & PR',
-    description: 'إدارة الشراكات الاستراتيجية مع الشركات، المؤسسات، الرعاة، والمتحدثين الرسميين، وتمثيل الكيان أمام المجتمع الأكاديمي والمهني.',
-    goals: ['توقيع بروتوكولات تعاون مع كبرى الشركات', 'استقطاب متحدثين دوليين', 'بناء شبكة علاقات قوية للطلاب'],
-    requirements: ['مهارات تواصل وتفاوض استثنائية', 'إجادة اللغة الإنجليزية والعربية باحترافية', 'اللباقة وحل المشكلات'],
-    head_name: 'مروان عادل',
-    sub_head_name: 'ملك حسام',
-    active_members_count: 15,
-    icon_name: 'Handshake'
-  },
-  {
-    id: 'comm_media',
-    key: 'media',
-    name: 'Media & Production',
-    arabic_name: 'لجنة الميديا والإنتاج (Media)',
-    category: 'Tech & Media',
-    description: 'التغطية البصرية الشاملة، صناعة الفيديو والريلز، التصميم الجرافيكي الاحترافي، وإنتاج المحتوى الرقمي الجذاب.',
-    goals: ['إنتاج محتوى مرئي احترافي لكافة الفعاليات', 'توثيق كافة المؤتمرات بجودة سينمائية', 'تصميم بوسترات ومطبوعات الكيان'],
-    requirements: ['إجادة أدوات التصميم (Adobe Photoshop, Illustrator)', 'خبرة في المونتاج (Premiere / After Effects)', 'حس فني وإبداعي عالي'],
-    head_name: 'يوسف شريف',
-    sub_head_name: 'نور الهدى',
-    active_members_count: 22,
-    icon_name: 'Camera'
-  },
-  {
-    id: 'comm_ir',
-    key: 'ir',
-    name: 'Internal Relations',
-    arabic_name: 'لجنة العلاقات الداخلية (IR)',
-    category: 'Operational',
-    description: 'متابعة أداء الأعضاء، إجراء مقابلات القبول، التقييم الشهري القياسي، حل النزاعات الداخلية، وبناء بيئة عمل داعمة ومحفزة.',
-    goals: ['متابعة وتقييم جميع أفراد الفريق شهرياً', 'إدارة دورة التعيين وإجراء المقابلات الشخصية', 'تعزيز الولاء وروح الفريق'],
-    requirements: ['العدالة والحيادية والموضوعية', 'مهارات استماع وتقييم نفسي وسلوكي', 'إدارة النزاعات والتوجيه الإيجابي'],
-    head_name: 'عمر خالد',
-    sub_head_name: 'فريدة إبراهيم',
-    active_members_count: 14,
-    icon_name: 'Users'
-  },
-  {
-    id: 'comm_event_planning',
-    key: 'event_planning',
-    name: 'Event Planning (Logistics)',
-    arabic_name: 'لجنة التنظيم واللوجستيات (Event Planning)',
-    category: 'Operational',
-    description: 'التخطيط اللوجستي الشامل للمؤتمرات، إدارة الحشود والتذاكر، حجز القاعات، وإخراج الفعاليات على أرض الواقع بأعلى معايير الانضباط.',
-    goals: ['إدارة الفعاليات والمؤتمرات الميدانية باحترافية', 'تنظيم دخول وحضور آلاف الطلاب', 'إدارة الميزانيات التشغيلية والمشتريات'],
-    requirements: ['إدارة الوقت والقدرة على العمل تحت الضغط', 'المرونة وسرعة اتخاذ القرار الميداني', 'القيادة والعمل الجماعي'],
-    head_name: 'كريم سامي',
-    sub_head_name: 'سلمى نبيل',
-    active_members_count: 25,
-    icon_name: 'Calendar'
-  },
-  {
-    id: 'comm_secretary',
-    key: 'secretary',
-    name: 'Secretary & Documentation',
-    arabic_name: 'لجنة السكرتارية والتوثيق (Secretary)',
-    category: 'Operational',
-    description: 'إدارة السجلات الرسمية، تدوين محاضر الاجتماعات، أرشفة الشهادات، ومتابعة الخطط الزمنية لكل اللجان.',
-    goals: ['أرشفة كافة أعمال الكيان وسجلاته الرسمية', 'تدوين ومتابعة قرارات مجلس الإدارة', 'تنظيم المراسلات والشهادات المعتمدة'],
-    requirements: ['الدقة والاهتمام بأدق التفاصيل', 'مهارات تنظيم البيانات وإدارة الملفات', 'السرية والأمانة في حفظ السجلات'],
-    head_name: 'هنا مصطفى',
-    sub_head_name: 'زياد حازم',
-    active_members_count: 12,
-    icon_name: 'FileText'
-  },
-  {
-    id: 'comm_charity',
-    key: 'charity',
-    name: 'Charity & Community Service',
-    arabic_name: 'لجنة العمل الخيري والمجتمعي (Charity)',
-    category: 'Community & Charity',
-    description: 'قيادة القوافل الطبية والتوعوية، تنظيم الحملات الخيرية، مساعدة الطلاب غير القادرين، وخدمة المجتمع المحلي.',
-    goals: ['تنظيم قوافل علاجية مجانية في القرى والمراكز', 'جمع وتوزيع التبرعات للأسر الأكثر احتياجاً', 'نشر الوعي الصحي المجتمعي'],
-    requirements: ['الشغف بالعمل التطوعي والإنساني', 'القدرة على التنسيق الميداني والإغاثي', 'روح التعاطف والمبادرة'],
-    head_name: 'مصطفى عثمان',
-    sub_head_name: 'أمينة زكي',
-    active_members_count: 20,
-    icon_name: 'Heart'
-  },
-  {
-    id: 'comm_magic_hand',
-    key: 'magic_hand',
-    name: 'Magic Hand (Decoration & Craft)',
-    arabic_name: 'لجنة الديكور والإبداع (Magic Hand)',
-    category: 'Community & Charity',
-    description: 'تصميم وبناء الديكورات الميدانية للفعاليات، الأعمال اليدوية والهدايا التذكارية، وإضفاء الطابع الجمالي المميز لكل حدث.',
-    goals: ['تصميم وتنفيذ ديكورات الفعاليات والمؤتمرات', 'صناعة الهدايا التذكارية المبتكرة', 'إبراز هوية الكيان في المعارض'],
-    requirements: ['مهارات يدوية وفنية وحرفية', 'القدرة على إعادة التدوير والابتكار', 'العمل الجماعي والسرعة في التنفيذ'],
-    head_name: 'داليا أشرف',
-    sub_head_name: 'محمد أنور',
-    active_members_count: 16,
-    icon_name: 'Sparkles'
-  },
-  {
-    id: 'comm_data_analysis',
-    key: 'data_analysis',
-    name: 'Data Analysis & Insights',
-    arabic_name: 'لجنة تحليل البيانات (Data Analysis)',
-    category: 'Tech & Media',
-    description: 'تحليل استبيانات الحضور، قياس أداء الحملات والفعاليات بالأرقام، إعداد تقارير المؤشرات والداشبورد، ودعم اتخاذ القرارات بالبيانات.',
-    goals: ['بناء لوحات بيانات تفاعلية لكافة مؤشرات الكيان', 'تحليل استبيانات رضا الطلاب والحضور بعد كل حدث', 'تحسين معدلات التحويل وجودة القرارات التنظيمية'],
-    requirements: ['معرفة بأدوات تحليل البيانات (Excel, Python, PowerBI, SQL)', 'التفكير المنطقي واستخراج الرؤى (Insights)', 'القدرة على إعداد تقارير الأداء التنفيذية'],
-    head_name: 'رامي بدر',
-    sub_head_name: 'ياسمين خليل',
-    active_members_count: 14,
-    icon_name: 'BarChart'
-  }
-];
-
 export const committeeService = {
   /**
-   * Get all active committees (Supabase backed with fallback)
+   * Get all active committees from Supabase
    */
   async getAllCommittees(): Promise<Committee[]> {
     try {
       const { data, error } = await supabase
         .from('committees')
         .select('*')
-        .order('name', { ascending: true });
+        .order('id', { ascending: true });
 
-      if (!error && data && data.length > 0) {
+      if (error) {
+        console.warn('getAllCommittees database error:', error);
+        return [];
+      }
+
+      if (data && data.length > 0) {
         return data.map(c => ({
           id: String(c.id || c.key),
           key: c.key as CommitteeKey,
           name: c.name,
-          arabic_name: c.arabic_name || c.name,
+          arabic_name: c.name_ar || c.arabic_name || c.name,
           category: c.category || 'Operational',
           description: c.description || '',
           goals: Array.isArray(c.goals) ? c.goals : (c.goals ? JSON.parse(c.goals) : []),
           requirements: Array.isArray(c.requirements) ? c.requirements : (c.requirements ? JSON.parse(c.requirements) : []),
           head_name: c.head_name || 'قائد اللجنة',
           sub_head_name: c.sub_head_name || 'نائب القائد',
-          active_members_count: c.active_members_count || 15,
-          icon_name: c.icon_name || 'Layers'
+          active_members_count: c.active_members_count || 0,
+          icon_name: c.icon || c.icon_name || 'Layers'
         }));
       }
     } catch (e) {
       console.warn('getAllCommittees exception:', e);
     }
 
-    return CANONICAL_COMMITTEES;
+    return [];
   },
 
   /**
@@ -180,15 +56,15 @@ export const committeeService = {
     const newComm = {
       key: committeeData.key,
       name: committeeData.name,
-      arabic_name: committeeData.arabic_name,
+      name_ar: committeeData.arabic_name || committeeData.name,
       category: committeeData.category || 'Operational',
       description: committeeData.description || '',
       goals: committeeData.goals || [],
       requirements: committeeData.requirements || [],
       head_name: committeeData.head_name || 'قائد اللجنة',
       sub_head_name: committeeData.sub_head_name || 'نائب القائد',
-      active_members_count: 0,
-      icon_name: committeeData.icon_name || 'Layers',
+      icon: committeeData.icon_name || 'Layers',
+      is_active: true,
       created_at: new Date().toISOString()
     };
 
@@ -209,22 +85,41 @@ export const committeeService = {
       action: 'CREATE_COMMITTEE',
       entity_type: 'committees',
       entity_id: String(data.id),
-      details: `أنشأ لجنة ${data.arabic_name}`
+      details: `أنشأ لجنة ${data.name_ar || data.name}`
     });
 
-    return data as Committee;
+    return {
+      id: String(data.id),
+      key: data.key as CommitteeKey,
+      name: data.name,
+      arabic_name: data.name_ar || data.name,
+      category: data.category || 'Operational',
+      description: data.description || '',
+      goals: data.goals || [],
+      requirements: data.requirements || [],
+      head_name: data.head_name,
+      sub_head_name: data.sub_head_name,
+      active_members_count: 0,
+      icon_name: data.icon || 'Layers'
+    };
   },
 
   /**
    * Update committee
    */
   async updateCommittee(id: string, updates: Partial<Committee>, actor: Profile): Promise<Committee> {
+    const payload: any = {
+      updated_at: new Date().toISOString()
+    };
+    if (updates.name !== undefined) payload.name = updates.name;
+    if (updates.arabic_name !== undefined) payload.name_ar = updates.arabic_name;
+    if (updates.description !== undefined) payload.description = updates.description;
+    if (updates.head_name !== undefined) payload.head_name = updates.head_name;
+    if (updates.sub_head_name !== undefined) payload.sub_head_name = updates.sub_head_name;
+
     const { data, error } = await supabase
       .from('committees')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString()
-      })
+      .update(payload)
       .eq('id', id)
       .select()
       .single();
@@ -240,10 +135,23 @@ export const committeeService = {
       action: 'UPDATE_COMMITTEE',
       entity_type: 'committees',
       entity_id: id,
-      details: `تحديث بيانات لجنة ${data.arabic_name}`
+      details: `تحديث بيانات لجنة ${data.name_ar || data.name}`
     });
 
-    return data as Committee;
+    return {
+      id: String(data.id),
+      key: data.key as CommitteeKey,
+      name: data.name,
+      arabic_name: data.name_ar || data.name,
+      category: data.category || 'Operational',
+      description: data.description || '',
+      goals: data.goals || [],
+      requirements: data.requirements || [],
+      head_name: data.head_name,
+      sub_head_name: data.sub_head_name,
+      active_members_count: data.active_members_count || 0,
+      icon_name: data.icon || 'Layers'
+    };
   },
 
   /**

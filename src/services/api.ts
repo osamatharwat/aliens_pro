@@ -41,6 +41,21 @@ import {
   CommitteeKey
 } from '../types';
 
+async function requireAuthActor(actor?: Profile, allowedRoles?: UserRole[]): Promise<Profile> {
+  const current = actor || (await authService.getSession());
+  if (!current || !current.id) {
+    throw new Error('غير مصرح: يجب تسجيل الدخول بحساب معتمد لإجراء هذه العملية.');
+  }
+  if (allowedRoles && allowedRoles.length > 0) {
+    const roleMatches = allowedRoles.includes(current.role);
+    const isSpecialHead = ['OG', 'team_head', 'team_sub_head'].includes(current.role);
+    if (!roleMatches && !isSpecialHead) {
+      throw new Error(`غير مصرح: رتبتك الحالية (${current.role}) لا تملك صلاحية تنفيذ هذا الإجراء.`);
+    }
+  }
+  return current;
+}
+
 export const ApiService = {
   // ==========================================
   // AUTH & SESSION MANAGEMENT (Supabase Auth Only)
@@ -92,12 +107,12 @@ export const ApiService = {
   },
 
   async createAccessCode(codeData: Partial<AccessCodeItem>, actor?: Profile): Promise<AccessCodeItem> {
-    const act = actor || (await authService.getSession()) || { id: 'admin', full_name: 'Admin', role: 'OG' as UserRole, username: 'admin', email: 'admin@aliens-space.org' };
+    const act = await requireAuthActor(actor, ['OG', 'team_head', 'team_sub_head', 'ir_head', 'head']);
     return membershipService.createAccessCode(codeData, act);
   },
 
   async toggleAccessCode(id: string, isActive: boolean, actor?: Profile): Promise<void> {
-    const act = actor || (await authService.getSession()) || { id: 'admin', full_name: 'Admin', role: 'OG' as UserRole, username: 'admin', email: 'admin@aliens-space.org' };
+    const act = await requireAuthActor(actor, ['OG', 'team_head', 'team_sub_head', 'ir_head', 'head']);
     return membershipService.toggleAccessCode(id, isActive, act);
   },
 
@@ -113,12 +128,12 @@ export const ApiService = {
   },
 
   async createCommittee(committeeData: Partial<Committee>, actor?: Profile): Promise<Committee> {
-    const act = actor || (await authService.getSession()) || { id: 'admin', full_name: 'Admin', role: 'OG' as UserRole, username: 'admin', email: 'admin@aliens-space.org' };
+    const act = await requireAuthActor(actor, ['OG', 'team_head']);
     return committeeService.createCommittee(committeeData, act);
   },
 
   async updateCommittee(id: string, updates: Partial<Committee>, actor?: Profile): Promise<Committee> {
-    const act = actor || (await authService.getSession()) || { id: 'admin', full_name: 'Admin', role: 'OG' as UserRole, username: 'admin', email: 'admin@aliens-space.org' };
+    const act = await requireAuthActor(actor, ['OG', 'team_head', 'head', 'sub_head']);
     return committeeService.updateCommittee(id, updates, act);
   },
 
@@ -134,17 +149,17 @@ export const ApiService = {
   },
 
   async createQuestion(questionData: Partial<DynamicQuestion>, actor?: Profile): Promise<DynamicQuestion> {
-    const act = actor || (await authService.getSession()) || { id: 'admin', full_name: 'Admin', role: 'OG' as UserRole, username: 'admin', email: 'admin@aliens-space.org' };
+    const act = await requireAuthActor(actor, ['OG', 'team_head', 'team_sub_head', 'head', 'sub_head', 'ir_head']);
     return questionService.createQuestion(questionData, act);
   },
 
   async updateQuestion(id: string, updates: Partial<DynamicQuestion>, actor?: Profile): Promise<DynamicQuestion> {
-    const act = actor || (await authService.getSession()) || { id: 'admin', full_name: 'Admin', role: 'OG' as UserRole, username: 'admin', email: 'admin@aliens-space.org' };
+    const act = await requireAuthActor(actor, ['OG', 'team_head', 'team_sub_head', 'head', 'sub_head', 'ir_head']);
     return questionService.updateQuestion(id, updates, act);
   },
 
   async deleteQuestion(id: string, actor?: Profile): Promise<void> {
-    const act = actor || (await authService.getSession()) || { id: 'admin', full_name: 'Admin', role: 'OG' as UserRole, username: 'admin', email: 'admin@aliens-space.org' };
+    const act = await requireAuthActor(actor, ['OG', 'team_head', 'team_sub_head', 'head', 'sub_head', 'ir_head']);
     return questionService.deleteQuestion(id, act);
   },
 
@@ -160,12 +175,12 @@ export const ApiService = {
   },
 
   async updateApplicationStatus(id: string, status: any, actor?: Profile, committeeNotes?: string): Promise<void> {
-    const act = actor || (await authService.getSession()) || { id: 'admin', full_name: 'Admin', role: 'OG' as UserRole, username: 'admin', email: 'admin@aliens-space.org' };
+    const act = await requireAuthActor(actor, ['OG', 'team_head', 'team_sub_head', 'head', 'sub_head', 'ir_head', 'ir_sub_head']);
     return applicationService.updateApplicationStatus(id, status, act, committeeNotes);
   },
 
   async shiftApplicant(id: string, targetCommitteeKey: CommitteeKey, reason: string, actor?: Profile): Promise<void> {
-    const act = actor || (await authService.getSession()) || { id: 'admin', full_name: 'Admin', role: 'OG' as UserRole, username: 'admin', email: 'admin@aliens-space.org' };
+    const act = await requireAuthActor(actor, ['OG', 'team_head', 'team_sub_head', 'head', 'sub_head', 'ir_head', 'ir_sub_head']);
     return applicationService.shiftApplicant(id, targetCommitteeKey, reason, act);
   },
 
@@ -189,32 +204,32 @@ export const ApiService = {
   },
 
   async assignMember(memberId: string, evaluatorId: string, actor?: Profile): Promise<IRAssignment> {
-    const act = actor || (await authService.getSession()) || { id: 'admin', full_name: 'Admin', role: 'OG' as UserRole, username: 'admin', email: 'admin@aliens-space.org' };
+    const act = await requireAuthActor(actor, ['OG', 'team_head', 'team_sub_head', 'ir_head', 'ir_sub_head']);
     return irService.assignMember(memberId, evaluatorId, act);
   },
 
   async unassignMember(memberId: string, actor?: Profile): Promise<void> {
-    const act = actor || (await authService.getSession()) || { id: 'admin', full_name: 'Admin', role: 'OG' as UserRole, username: 'admin', email: 'admin@aliens-space.org' };
+    const act = await requireAuthActor(actor, ['OG', 'team_head', 'team_sub_head', 'ir_head', 'ir_sub_head']);
     return irService.unassignMember(memberId, act);
   },
 
   async reassignMember(memberId: string, newEvaluatorId: string, actor?: Profile): Promise<IRAssignment> {
-    const act = actor || (await authService.getSession()) || { id: 'admin', full_name: 'Admin', role: 'OG' as UserRole, username: 'admin', email: 'admin@aliens-space.org' };
+    const act = await requireAuthActor(actor, ['OG', 'team_head', 'team_sub_head', 'ir_head', 'ir_sub_head']);
     return irService.reassignMember(memberId, newEvaluatorId, act);
   },
 
   async assignApplicant(appId: string, evaluatorId: string, actor?: Profile): Promise<void> {
-    const act = actor || (await authService.getSession()) || { id: 'admin', full_name: 'Admin', role: 'OG' as UserRole, username: 'admin', email: 'admin@aliens-space.org' };
+    const act = await requireAuthActor(actor, ['OG', 'team_head', 'team_sub_head', 'ir_head', 'ir_sub_head']);
     return irService.assignApplicant(appId, evaluatorId, act);
   },
 
   async unassignApplicant(appId: string, actor?: Profile): Promise<void> {
-    const act = actor || (await authService.getSession()) || { id: 'admin', full_name: 'Admin', role: 'OG' as UserRole, username: 'admin', email: 'admin@aliens-space.org' };
+    const act = await requireAuthActor(actor, ['OG', 'team_head', 'team_sub_head', 'ir_head', 'ir_sub_head']);
     return irService.unassignApplicant(appId, act);
   },
 
   async submitApplicantReview(appId: string, review: any, actor?: Profile): Promise<void> {
-    const act = actor || (await authService.getSession()) || { id: 'admin', full_name: 'Admin', role: 'OG' as UserRole, username: 'admin', email: 'admin@aliens-space.org' };
+    const act = await requireAuthActor(actor, ['OG', 'team_head', 'team_sub_head', 'ir_head', 'ir_sub_head', 'ir_evaluator']);
     return irService.submitApplicantReview(appId, review, act);
   },
 
@@ -230,7 +245,7 @@ export const ApiService = {
   },
 
   async submitEvaluation(evalData: any, actor?: Profile): Promise<EvaluationItem> {
-    const act = actor || (await authService.getSession()) || { id: 'admin', full_name: 'Admin', role: 'OG' as UserRole, username: 'admin', email: 'admin@aliens-space.org' };
+    const act = await requireAuthActor(actor, ['OG', 'team_head', 'team_sub_head', 'head', 'sub_head', 'ir_head', 'ir_sub_head', 'ir_evaluator']);
     return evaluationService.submitMonthlyEvaluation(evalData, act);
   },
 
@@ -246,17 +261,17 @@ export const ApiService = {
   },
 
   async createEvent(eventData: Partial<EventItem>, actor?: Profile): Promise<EventItem> {
-    const act = actor || (await authService.getSession()) || { id: 'admin', full_name: 'Admin', role: 'OG' as UserRole, username: 'admin', email: 'admin@aliens-space.org' };
+    const act = await requireAuthActor(actor, ['OG', 'team_head', 'team_sub_head', 'head', 'sub_head']);
     return eventService.createEvent(eventData, act);
   },
 
   async updateEvent(id: string, updates: Partial<EventItem>, actor?: Profile): Promise<EventItem> {
-    const act = actor || (await authService.getSession()) || { id: 'admin', full_name: 'Admin', role: 'OG' as UserRole, username: 'admin', email: 'admin@aliens-space.org' };
+    const act = await requireAuthActor(actor, ['OG', 'team_head', 'team_sub_head', 'head', 'sub_head']);
     return eventService.updateEvent(id, updates, act);
   },
 
   async deleteEvent(id: string, actor?: Profile): Promise<void> {
-    const act = actor || (await authService.getSession()) || { id: 'admin', full_name: 'Admin', role: 'OG' as UserRole, username: 'admin', email: 'admin@aliens-space.org' };
+    const act = await requireAuthActor(actor, ['OG', 'team_head', 'team_sub_head', 'head', 'sub_head']);
     return eventService.deleteEvent(id, act);
   },
 
@@ -269,7 +284,7 @@ export const ApiService = {
   },
 
   async updateAttendance(registrationId: string, status: 'attended' | 'not_completed', actor?: Profile): Promise<EventRegistration> {
-    const act = actor || (await authService.getSession()) || { id: 'admin', full_name: 'Admin', role: 'OG' as UserRole, username: 'admin', email: 'admin@aliens-space.org' };
+    const act = await requireAuthActor(actor, ['OG', 'team_head', 'team_sub_head', 'head', 'sub_head']);
     return attendanceService.updateAttendance(registrationId, status, act);
   },
 
@@ -296,17 +311,17 @@ export const ApiService = {
   },
 
   async createTask(taskData: Partial<TaskItem>, actor?: Profile): Promise<TaskItem> {
-    const act = actor || (await authService.getSession()) || { id: 'admin', full_name: 'Admin', role: 'OG' as UserRole, username: 'admin', email: 'admin@aliens-space.org' };
+    const act = await requireAuthActor(actor, ['OG', 'team_head', 'team_sub_head', 'head', 'sub_head']);
     return taskService.createTask(taskData, act);
   },
 
   async updateTaskStatus(taskId: string, status: 'todo' | 'in_progress' | 'completed', actor?: Profile): Promise<TaskItem> {
-    const act = actor || (await authService.getSession()) || { id: 'admin', full_name: 'Admin', role: 'OG' as UserRole, username: 'admin', email: 'admin@aliens-space.org' };
+    const act = await requireAuthActor(actor);
     return taskService.updateTaskStatus(taskId, status, act);
   },
 
   async deleteTask(taskId: string, actor?: Profile): Promise<void> {
-    const act = actor || (await authService.getSession()) || { id: 'admin', full_name: 'Admin', role: 'OG' as UserRole, username: 'admin', email: 'admin@aliens-space.org' };
+    const act = await requireAuthActor(actor, ['OG', 'team_head', 'team_sub_head', 'head', 'sub_head']);
     return taskService.deleteTask(taskId, act);
   },
 
@@ -318,7 +333,8 @@ export const ApiService = {
   },
 
   async createMemory(text: string, imageUrl?: string, author?: Profile): Promise<MemoryItem> {
-    return memoryService.createMemory(text, imageUrl, author);
+    const act = await requireAuthActor(author);
+    return memoryService.createMemory(text, imageUrl, act);
   },
 
   async likeMemory(memoryId: string): Promise<number> {
@@ -326,7 +342,8 @@ export const ApiService = {
   },
 
   async addCommentToMemory(memoryId: string, text: string, author?: Profile): Promise<any> {
-    return memoryService.addComment(memoryId, text, author);
+    const act = await requireAuthActor(author);
+    return memoryService.addComment(memoryId, text, act);
   },
 
   async getGalleryAlbums(): Promise<GalleryAlbum[]> {
@@ -357,7 +374,7 @@ export const ApiService = {
   },
 
   async updateSiteSettings(settings: Partial<SiteSettings>, actor?: Profile): Promise<SiteSettings> {
-    const act = actor || (await authService.getSession()) || { id: 'admin', full_name: 'Admin', role: 'OG' as UserRole, username: 'admin', email: 'admin@aliens-space.org' };
+    const act = await requireAuthActor(actor, ['OG', 'team_head']);
     return settingsService.updateSiteSettings(settings, act);
   },
 

@@ -2,63 +2,6 @@ import { supabase } from '../lib/supabase';
 import { EventItem, Profile } from '../types';
 import { auditService } from './auditService';
 
-export const DEFAULT_EVENTS: EventItem[] = [
-  {
-    id: 'ev_1',
-    title: 'المؤتمر الصيدلي السنوي: آفاق الذكاء الاصطناعي في اكتشاف الأدوية',
-    description: 'مؤتمر رائد يجمع نخبة من علماء الصيدلة والذكاء الاصطناعي لاستعراض أحدث الأبحاث العالمية في تصميم وتطوير الأدوية الحديثة.',
-    event_date: '2026-09-15T10:00:00Z',
-    location: 'مركز المؤتمرات الرئيسي — القاعة الكبرى',
-    image_url: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1200&q=80',
-    category: 'technical',
-    is_public: true,
-    is_published: true,
-    certificate_enabled: true,
-    registration_open: true,
-    capacity: 350,
-    current_attendees_count: 210,
-    whatsapp_group_url: 'https://chat.whatsapp.com/aliens-annual-pharma',
-    action_link: 'https://aliens-space.org/pharma-2026',
-    created_at: new Date().toISOString()
-  },
-  {
-    id: 'ev_2',
-    title: 'ورشة عمل: القيادة وإدارة النزاعات في البيئات الطبية',
-    description: 'تدريب تفاعلي عملي لتطوير مهارات الإقناع، القيادة الفعالة، والتعامل مع ضغوط العمل وإدارة فرق العمل الطبية المعقدة.',
-    event_date: '2026-09-22T14:00:00Z',
-    location: 'مقر الكيان — قاعة التدريب المتقدم',
-    image_url: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=80',
-    category: 'soft_skills',
-    is_public: true,
-    is_published: true,
-    certificate_enabled: true,
-    registration_open: true,
-    capacity: 80,
-    current_attendees_count: 65,
-    whatsapp_group_url: 'https://chat.whatsapp.com/aliens-leadership-ws',
-    action_link: 'https://aliens-space.org/leadership',
-    created_at: new Date().toISOString()
-  },
-  {
-    id: 'ev_3',
-    title: 'هاكاثون تحليل البيانات الصحية والتطبيقات الصيدلانية',
-    description: 'تحدي تقني لمدة 48 ساعة لبناء لوحات بيانات ونماذج تنبؤية لتحسين جودة الرعاية الصحية وإدارة الصيدليات الذكية.',
-    event_date: '2026-10-05T09:00:00Z',
-    location: 'معامل الحوسبة المركزية',
-    image_url: 'https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?auto=format&fit=crop&w=1200&q=80',
-    category: 'hackathon',
-    is_public: true,
-    is_published: true,
-    certificate_enabled: true,
-    registration_open: true,
-    capacity: 120,
-    current_attendees_count: 88,
-    whatsapp_group_url: 'https://chat.whatsapp.com/aliens-hackathon-2026',
-    action_link: 'https://aliens-space.org/hackathon',
-    created_at: new Date().toISOString()
-  }
-];
-
 export const eventService = {
   /**
    * Get all published events (or all events for admin)
@@ -70,7 +13,12 @@ export const eventService = {
         .select('*')
         .order('event_date', { ascending: true });
 
-      if (!error && data && data.length > 0) {
+      if (error) {
+        console.warn('getEvents error:', error);
+        return [];
+      }
+
+      if (data && data.length > 0) {
         return data.map(ev => ({
           id: String(ev.id),
           title: ev.title,
@@ -94,15 +42,39 @@ export const eventService = {
       console.warn('getEvents exception:', e);
     }
 
-    return DEFAULT_EVENTS;
+    return [];
   },
 
   /**
    * Get single event by ID
    */
   async getEventById(id: string): Promise<EventItem | null> {
-    const events = await this.getEvents();
-    return events.find(e => e.id === id) || null;
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error || !data) return null;
+
+    return {
+      id: String(data.id),
+      title: data.title,
+      description: data.description || '',
+      event_date: data.event_date || new Date().toISOString(),
+      location: data.location || 'مقر الكيان',
+      image_url: data.image_url || 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1200&q=80',
+      category: data.category || 'technical',
+      is_public: data.is_public !== false,
+      is_published: data.is_published !== false,
+      certificate_enabled: Boolean(data.certificate_enabled),
+      registration_open: data.registration_open !== false,
+      capacity: Number(data.capacity) || 100,
+      current_attendees_count: Number(data.current_attendees_count) || 0,
+      whatsapp_group_url: data.whatsapp_group_url || undefined,
+      action_link: data.action_link || undefined,
+      created_at: data.created_at || new Date().toISOString()
+    };
   },
 
   /**
@@ -121,7 +93,6 @@ export const eventService = {
       certificate_enabled: Boolean(eventData.certificate_enabled),
       registration_open: eventData.registration_open !== false,
       capacity: Number(eventData.capacity) || 100,
-      current_attendees_count: 0,
       whatsapp_group_url: eventData.whatsapp_group_url || null,
       action_link: eventData.action_link || null,
       created_at: new Date().toISOString()
@@ -192,7 +163,24 @@ export const eventService = {
       details: `تعديل بيانات فعالية: ${data.title}`
     });
 
-    return data as EventItem;
+    return {
+      id: String(data.id),
+      title: data.title,
+      description: data.description,
+      event_date: data.event_date,
+      location: data.location,
+      image_url: data.image_url,
+      category: data.category,
+      is_public: data.is_public,
+      is_published: data.is_published,
+      certificate_enabled: data.certificate_enabled,
+      registration_open: data.registration_open,
+      capacity: data.capacity,
+      current_attendees_count: Number(data.current_attendees_count) || 0,
+      whatsapp_group_url: data.whatsapp_group_url,
+      action_link: data.action_link,
+      created_at: data.created_at
+    };
   },
 
   /**

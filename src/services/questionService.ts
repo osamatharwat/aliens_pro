@@ -2,123 +2,6 @@ import { supabase } from '../lib/supabase';
 import { DynamicQuestion, Profile } from '../types';
 import { auditService } from './auditService';
 
-export const DEFAULT_QUESTIONS: DynamicQuestion[] = [
-  // Global / General
-  {
-    id: 'q_g_1',
-    committee_key: 'global',
-    question_text: 'لماذا اخترت الانضمام إلى كيان Aliens Space وما هي أهدافك معنا؟',
-    order_index: 1,
-    is_active: true,
-    created_at: new Date().toISOString()
-  },
-  {
-    id: 'q_g_2',
-    committee_key: 'global',
-    question_text: 'كيف تنظم وقتك بين دراستك الأكاديمية والأنشطة الطلابية التطوعية؟',
-    order_index: 2,
-    is_active: true,
-    created_at: new Date().toISOString()
-  },
-  // IR Questions
-  {
-    id: 'q_ir_1',
-    committee_key: 'ir',
-    question_text: 'كيف تتصرف إذا نشب خلاف شخصي بين عضوين في نفس الفريق خلال تنظيم فعالية هامة؟',
-    order_index: 1,
-    is_active: true,
-    created_at: new Date().toISOString()
-  },
-  {
-    id: 'q_ir_2',
-    committee_key: 'ir',
-    question_text: 'ما هي معاييرك لتقييم أداء عضو غير ملتزم بالمواعيد المحددة للتسليم؟',
-    order_index: 2,
-    is_active: true,
-    created_at: new Date().toISOString()
-  },
-  // Marketing
-  {
-    id: 'q_mkt_1',
-    committee_key: 'marketing',
-    question_text: 'كيف تصمم حملة تسويقية لجذب 1000 طالب لحضور مؤتمر طبي جديد؟',
-    order_index: 1,
-    is_active: true,
-    created_at: new Date().toISOString()
-  },
-  // PR
-  {
-    id: 'q_pr_1',
-    committee_key: 'pr',
-    question_text: 'كيف تتواصل مع شركة راعية وترقنعهم بتمويل مؤتمر سنوي للطلاب؟',
-    order_index: 1,
-    is_active: true,
-    created_at: new Date().toISOString()
-  },
-  // Media
-  {
-    id: 'q_med_1',
-    committee_key: 'media',
-    question_text: 'ما هي البرامج التي تجيدها في المونتاج والتصميم؟ اذكر روابط لأعمالك السابقة.',
-    order_index: 1,
-    is_active: true,
-    created_at: new Date().toISOString()
-  },
-  // Event Planning
-  {
-    id: 'q_ep_1',
-    committee_key: 'event_planning',
-    question_text: 'كيف تتصرف إذا تأخر المحاضر الرئيسي عن موعده 45 دقيقة والقاعة ممتلئة؟',
-    order_index: 1,
-    is_active: true,
-    created_at: new Date().toISOString()
-  },
-  // Secretary
-  {
-    id: 'q_sec_1',
-    committee_key: 'secretary',
-    question_text: 'ما هي خبرتك في برامج Microsoft Excel وتوثيق محاضر الاجتماعات الرسمية؟',
-    order_index: 1,
-    is_active: true,
-    created_at: new Date().toISOString()
-  },
-  // Charity
-  {
-    id: 'q_ch_1',
-    committee_key: 'charity',
-    question_text: 'ما هي أفكارك المبتكرة لتنظيم قافلة طبية توعوية في منطقة نائية؟',
-    order_index: 1,
-    is_active: true,
-    created_at: new Date().toISOString()
-  },
-  // Magic Hand
-  {
-    id: 'q_mh_1',
-    committee_key: 'magic_hand',
-    question_text: 'ما هي المهارات الفنية واليدوية التي تجيدها في الديكور وإعادة التدوير؟',
-    order_index: 1,
-    is_active: true,
-    created_at: new Date().toISOString()
-  },
-  // Data Analysis
-  {
-    id: 'q_da_1',
-    committee_key: 'data_analysis',
-    question_text: 'ما هي الأدوات واللغات التي تستخدمها لتحليل البيانات (Excel, PowerBI, Python, SQL)؟',
-    order_index: 1,
-    is_active: true,
-    created_at: new Date().toISOString()
-  },
-  {
-    id: 'q_da_2',
-    committee_key: 'data_analysis',
-    question_text: 'كيف تستخرج رؤى واضحة (Actionable Insights) من استبيان حضور فعالية به 500 استجابة؟',
-    order_index: 2,
-    is_active: true,
-    created_at: new Date().toISOString()
-  }
-];
-
 export const questionService = {
   /**
    * Get all dynamic questions
@@ -130,7 +13,12 @@ export const questionService = {
         .select('*')
         .order('order_index', { ascending: true });
 
-      if (!error && data && data.length > 0) {
+      if (error) {
+        console.warn('getAllQuestions error:', error);
+        return [];
+      }
+
+      if (data && data.length > 0) {
         return data.map(q => ({
           id: String(q.id),
           committee_key: q.committee_key,
@@ -144,7 +32,7 @@ export const questionService = {
       console.warn('getAllQuestions exception:', e);
     }
 
-    return DEFAULT_QUESTIONS;
+    return [];
   },
 
   /**
@@ -163,7 +51,7 @@ export const questionService = {
   async createQuestion(questionData: Partial<DynamicQuestion>, actor: Profile): Promise<DynamicQuestion> {
     const newQ = {
       committee_key: questionData.committee_key || 'global',
-      question_text: questionData.question_text,
+      question_text: questionData.question_text?.trim(),
       order_index: questionData.order_index || 1,
       is_active: true,
       created_at: new Date().toISOString()

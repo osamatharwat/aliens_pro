@@ -42,59 +42,73 @@ export const irService = {
    * Get active member assignments from ir_assignments
    */
   async getActiveAssignments(): Promise<IRAssignment[]> {
-    try {
-      const { data, error } = await supabase
-        .from('ir_assignments')
-        .select('*')
-        .eq('status', 'active')
-        .order('assigned_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('ir_assignments')
+      .select('*')
+      .eq('status', 'active')
+      .order('assigned_at', { ascending: false });
 
-      if (!error && data) {
-        return data.map(row => ({
-          id: String(row.id),
-          evaluator_id: row.evaluator_id,
-          evaluator_name: row.evaluator_name,
-          member_id: row.member_id,
-          member_name: row.member_name,
-          member_committee: row.member_committee,
-          assigned_by: row.assigned_by,
-          status: row.status as any,
-          assigned_at: row.assigned_at
-        }));
-      }
-    } catch (e) {
-      console.warn('getActiveAssignments exception:', e);
+    if (error) {
+      console.warn('getActiveAssignments database error:', error);
+      return [];
     }
-    return [];
+
+    if (!data || data.length === 0) return [];
+
+    const profiles = await profileService.getAllProfiles();
+    const profileMap = new Map(profiles.map(p => [p.id, p]));
+
+    return data.map(row => {
+      const evaluator = profileMap.get(row.evaluator_id);
+      const member = profileMap.get(row.member_id);
+      return {
+        id: String(row.id),
+        evaluator_id: row.evaluator_id,
+        evaluator_name: evaluator ? evaluator.full_name : row.evaluator_name || 'مقيّم غير معروف',
+        member_id: row.member_id,
+        member_name: member ? member.full_name : row.member_name || 'عضو غير معروف',
+        member_committee: member?.committee_key || row.member_committee,
+        assigned_by: row.assigned_by,
+        status: row.status as any,
+        assigned_at: row.assigned_at
+      };
+    });
   },
 
   /**
    * Get full assignment history
    */
   async getAssignmentHistory(): Promise<IRAssignment[]> {
-    try {
-      const { data, error } = await supabase
-        .from('ir_assignments')
-        .select('*')
-        .order('assigned_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('ir_assignments')
+      .select('*')
+      .order('assigned_at', { ascending: false });
 
-      if (!error && data) {
-        return data.map(row => ({
-          id: String(row.id),
-          evaluator_id: row.evaluator_id,
-          evaluator_name: row.evaluator_name,
-          member_id: row.member_id,
-          member_name: row.member_name,
-          member_committee: row.member_committee,
-          assigned_by: row.assigned_by,
-          status: row.status as any,
-          assigned_at: row.assigned_at
-        }));
-      }
-    } catch (e) {
-      console.warn('getAssignmentHistory exception:', e);
+    if (error) {
+      console.warn('getAssignmentHistory database error:', error);
+      return [];
     }
-    return [];
+
+    if (!data || data.length === 0) return [];
+
+    const profiles = await profileService.getAllProfiles();
+    const profileMap = new Map(profiles.map(p => [p.id, p]));
+
+    return data.map(row => {
+      const evaluator = profileMap.get(row.evaluator_id);
+      const member = profileMap.get(row.member_id);
+      return {
+        id: String(row.id),
+        evaluator_id: row.evaluator_id,
+        evaluator_name: evaluator ? evaluator.full_name : row.evaluator_name || 'مقيّم',
+        member_id: row.member_id,
+        member_name: member ? member.full_name : row.member_name || 'عضو',
+        member_committee: member?.committee_key || row.member_committee,
+        assigned_by: row.assigned_by,
+        status: row.status as any,
+        assigned_at: row.assigned_at
+      };
+    });
   },
 
   /**
@@ -135,14 +149,11 @@ export const irService = {
       .eq('member_id', memberId)
       .eq('status', 'active');
 
-    // 2. Insert new active assignment
+    // 2. Insert new active assignment with schema-compatible payload
     const assignmentPayload = {
       evaluator_id: evaluatorId,
-      evaluator_name: evaluator.full_name,
       member_id: memberId,
-      member_name: member.full_name,
-      member_committee: member.committee_key,
-      assigned_by: actor.full_name || actor.id,
+      assigned_by: actor.id,
       status: 'active',
       assigned_at: new Date().toISOString()
     };
@@ -154,14 +165,18 @@ export const irService = {
       .single();
 
     if (insertError) {
-      console.warn('Assignment insert warning:', insertError);
+      throw new Error(insertError.message || 'فشل تسجيل التعيين في قاعدة البيانات.');
     }
 
     // 3. Update member profile's assigned_ir field
-    await supabase
+    const { error: profError } = await supabase
       .from('profiles')
       .update({ assigned_ir: evaluatorId, updated_at: new Date().toISOString() })
       .eq('id', memberId);
+
+    if (profError) {
+      console.warn('Profile assigned_ir update warning:', profError);
+    }
 
     // 4. Audit Log
     await auditService.logAction({
@@ -175,15 +190,15 @@ export const irService = {
     });
 
     return {
-      id: String(inserted?.id || `asgn_${Date.now()}`),
+      id: String(inserted.id),
       evaluator_id: evaluatorId,
       evaluator_name: evaluator.full_name,
       member_id: memberId,
       member_name: member.full_name,
       member_committee: member.committee_key,
-      assigned_by: actor.full_name,
+      assigned_by: actor.id,
       status: 'active',
-      assigned_at: new Date().toISOString()
+      assigned_at: inserted.assigned_at || new Date().toISOString()
     };
   },
 
@@ -191,16 +206,24 @@ export const irService = {
    * Unassign a team member from IR evaluator
    */
   async unassignMember(memberId: string, actor: Profile): Promise<void> {
-    await supabase
+    const { error: asgnError } = await supabase
       .from('ir_assignments')
       .update({ status: 'completed' })
       .eq('member_id', memberId)
       .eq('status', 'active');
 
-    await supabase
+    if (asgnError) {
+      throw new Error(asgnError.message || 'فشل إنهاء التعيين في جدول التكليفات.');
+    }
+
+    const { error: profError } = await supabase
       .from('profiles')
       .update({ assigned_ir: null, updated_at: new Date().toISOString() })
       .eq('id', memberId);
+
+    if (profError) {
+      throw new Error(profError.message || 'فشل تحديث ملف العضو.');
+    }
 
     await auditService.logAction({
       actor_name: actor.full_name,
