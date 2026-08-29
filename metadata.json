@@ -1,0 +1,6 @@
+{
+  "name": "Aliens Space",
+  "description": "Official platform for Aliens Student Activity at Delta University Pharmacy featuring events, recruitment, member workspaces, IR evaluation, certificates, and portfolio.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
